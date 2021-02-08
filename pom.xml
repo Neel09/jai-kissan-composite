@@ -11,12 +11,12 @@
 	</parent>
 	<groupId>org.jai.kissan</groupId>
 	<artifactId>jai-kissan-composite</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0-RELEASE</version>
 	<name>jai-kissan-composite</name>
 	<description>Demo project for Spring Boot</description>
 	<properties>
 		<java.version>11</java.version>
-		<jai.kissan.api.version>0.0.1-SNAPSHOT</jai.kissan.api.version>
+		<jai.kissan.api.version>1.0-RELEASE</jai.kissan.api.version>
 		<lombok.version>1.18.16</lombok.version>
 		<mapstruct.version>1.4.2.Final</mapstruct.version>
 		<maven.compiler.version>3.8.1</maven.compiler.version>
