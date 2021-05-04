@@ -9,27 +9,31 @@ import lombok.Getter;
 @Getter
 public class Endpoints {
 
-	private final String farmerCropServiceUrlForFarmer;
+	private final String farmerCropServiceUriForFarmer;
 
-	private final String farmerCropServiceUrlForCrop;
+	private final String farmerCropServiceUriForCrop;
 
-	private final String farmerFciServiceUrlToCreateDeal;
+	private final String farmerFciServiceUriToCreateDeal;
 
-	private final String farmerFciServiceUrlToBuyDeal;
+	private final String farmerFciServiceUriToBuyDeal;
 
-	private final String farmerFciServiceUrlToUpdateQuantity;
+	private final String farmerFciServiceUriToUpdateQuantity;
 
-	private final String farmerFciServiceUrlToUpdateStatusToReview;
+	private final String farmerFciServiceUriToUpdateStatusToReview;
 
-	private final String farmerFciServiceUrlToGetNewDeals;
+	private final String farmerFciServiceUriToGetNewDeals;
 
-	private final String farmerFciServiceUrlToGetReviewingDeals;
+	private final String farmerFciServiceUriToGetReviewingDeals;
 
-	private final String farmerFciServiceUrlToGetActiveDeals;
+	private final String farmerFciServiceUriToGetCompletedDeals;
 
-	private final String farmerFciServiceUrlToDeleteAllFarmerDeals;
+	private final String farmerFciServiceUriToGetActiveDeals;
 
-	private final String farmerFciServiceUrlToDeleteFciDeal;
+	private final String farmerFciServiceUriToGetAllDeals;
+
+	private final String farmerFciServiceUriToDeleteAllFarmerDeals;
+
+	private final String farmerFciServiceUriToDeleteFciDeal;
 
 	public Endpoints(@Value("${app.farmer-crop-service.host}") String farmerCropServiceHost,
 			@Value("${app.farmer-crop-service.port}") String farmerCropServicePort,
@@ -45,28 +49,35 @@ public class Endpoints {
 			@Value("${app.farmer-fci-service.endpoint.reviewing-deals}") String farmerFciServiceEndpointToGetReviewingDeals,
 			@Value("${app.farmer-fci-service.endpoint.active-deals}") String farmerFciServiceEndpointToGetActiveDeals,
 			@Value("${app.farmer-fci-service.endpoint.farmer-deals}") String farmerFciServiceEndpointToDeleteAllFarmerDeals,
-			@Value("${app.farmer-fci-service.endpoint.fci-deal}") String farmerFciServiceEndpointToDeleteFciDeal) {
+			@Value("${app.farmer-fci-service.endpoint.fci-deal}") String farmerFciServiceEndpointToDeleteFciDeal,
+			@Value("${app.farmer-fci-service.endpoint.all-deals}") String farmerFciServiceEndpointToGetAllDeals,
+			@Value("${app.farmer-fci-service.endpoint.completed-deals}") String farmerFciServiceEndpointToGetCompletedDeals) {
 
-		String farmerCropServiceUrl = "http://" + farmerCropServiceHost + ":" + farmerCropServicePort;
-		String farmerFciServiceUrl = "http://" + farmerFciServiceHost + ":" + farmerFciServicePort;
+		String farmerCropServiceHostAndPort = "http://" + farmerCropServiceHost + ":" + farmerCropServicePort;
+		String farmerFciServiceHostAndPort = "http://" + farmerFciServiceHost + ":" + farmerFciServicePort;
 
 		// Farmer-Crop Service Endpoints
-		this.farmerCropServiceUrlForFarmer = farmerCropServiceUrl + farmerCropServiceEndpointForFarmer;
-		this.farmerCropServiceUrlForCrop = farmerCropServiceUrl + farmerCropServiceEndpointForCrop;
+		this.farmerCropServiceUriForFarmer = farmerCropServiceHostAndPort + farmerCropServiceEndpointForFarmer;
+		this.farmerCropServiceUriForCrop = farmerCropServiceHostAndPort + farmerCropServiceEndpointForCrop;
 
 		// Farmer-Fci service Endpoints
-		this.farmerFciServiceUrlToCreateDeal = farmerFciServiceUrl + farmerFciServiceEndpointToCreateDeal;
-		this.farmerFciServiceUrlToBuyDeal = farmerFciServiceUrl + farmerFciServiceEndpointToBuyDeal;
-		this.farmerFciServiceUrlToUpdateQuantity = farmerFciServiceUrl + farmerFciServiceEndpointToUpdateQuantity;
-		this.farmerFciServiceUrlToUpdateStatusToReview = farmerFciServiceUrl
+		this.farmerFciServiceUriToCreateDeal = farmerFciServiceHostAndPort + farmerFciServiceEndpointToCreateDeal;
+		this.farmerFciServiceUriToBuyDeal = farmerFciServiceHostAndPort + farmerFciServiceEndpointToBuyDeal;
+		this.farmerFciServiceUriToUpdateQuantity = farmerFciServiceHostAndPort
+				+ farmerFciServiceEndpointToUpdateQuantity;
+		this.farmerFciServiceUriToUpdateStatusToReview = farmerFciServiceHostAndPort
 				+ farmerFciServiceEndpointToUpdateStatusToReview;
-		this.farmerFciServiceUrlToGetNewDeals = farmerFciServiceUrl + farmerFciServiceEndpointToGetNewDeals;
-		this.farmerFciServiceUrlToGetReviewingDeals = farmerFciServiceUrl + farmerFciServiceEndpointToGetReviewingDeals;
-		this.farmerFciServiceUrlToGetActiveDeals = farmerFciServiceUrl + farmerFciServiceEndpointToGetActiveDeals;
-		this.farmerFciServiceUrlToDeleteAllFarmerDeals = farmerFciServiceUrl
+		this.farmerFciServiceUriToGetNewDeals = farmerFciServiceHostAndPort + farmerFciServiceEndpointToGetNewDeals;
+		this.farmerFciServiceUriToGetReviewingDeals = farmerFciServiceHostAndPort
+				+ farmerFciServiceEndpointToGetReviewingDeals;
+		this.farmerFciServiceUriToGetActiveDeals = farmerFciServiceHostAndPort
+				+ farmerFciServiceEndpointToGetActiveDeals;
+		this.farmerFciServiceUriToDeleteAllFarmerDeals = farmerFciServiceHostAndPort
 				+ farmerFciServiceEndpointToDeleteAllFarmerDeals;
-		this.farmerFciServiceUrlToDeleteFciDeal = farmerFciServiceUrl + farmerFciServiceEndpointToDeleteFciDeal;
-
+		this.farmerFciServiceUriToDeleteFciDeal = farmerFciServiceHostAndPort + farmerFciServiceEndpointToDeleteFciDeal;
+		this.farmerFciServiceUriToGetAllDeals = farmerFciServiceHostAndPort + farmerFciServiceEndpointToGetAllDeals;
+		this.farmerFciServiceUriToGetCompletedDeals = farmerFciServiceHostAndPort
+				+ farmerFciServiceEndpointToGetCompletedDeals;
 	}
 
 }

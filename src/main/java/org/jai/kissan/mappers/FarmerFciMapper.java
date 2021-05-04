@@ -19,8 +19,7 @@ public interface FarmerFciMapper {
 			@Mapping(target = "cropIdentityCode", source = "fciDealSummary.cropDetails.cropIdentityCode") })
 	public FarmerFciDeal fciDealSummaryToFarmerFciDealApiModelMapper(FciDealSummary fciDealSummary);
 
-	@Mappings({ @Mapping(target = "fciDealIdentityCode", source = "farmerFciDeal.dealIdentityCode"),
-			@Mapping(target = "cropDetails.cropIdentityCode", source = "farmerFciDeal.cropIdentityCode") })
+	@Mappings({ @Mapping(target = "fciDealIdentityCode", source = "farmerFciDeal.dealIdentityCode")})
 	public List<FciDealSummary> farmerFciDealApiModelsToFciDealsSummaryMapper(List<FarmerFciDeal> farmerFciDeal);
 
 	@Mappings({ @Mapping(target = "dealIdentityCode", source = "fciDealSummary.fciDealIdentityCode"),

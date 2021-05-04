@@ -3,46 +3,44 @@ package org.jai.kissan.controller;
 import org.jai.kissan.api.farmer.composite.contoller.IFarmerCompositeController;
 import org.jai.kissan.api.farmer.composite.model.FarmerComposite;
 import org.jai.kissan.service.FarmerCompositeService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RestController;
 
+import lombok.RequiredArgsConstructor;
+import reactor.core.publisher.Mono;
+
 @RestController
+@RequiredArgsConstructor
 public class FarmerCompositeController implements IFarmerCompositeController {
 
 	private final FarmerCompositeService farmerCompositeService;
 
-	@Autowired
-	public FarmerCompositeController(FarmerCompositeService farmerCompositeService) {
-		this.farmerCompositeService = farmerCompositeService;
+	@Override
+	public Mono<String> createFarmerAndFciDeal(FarmerComposite farmerComposite) {
+		return farmerCompositeService.createFarmerAndFciDeal(farmerComposite);
 	}
 
 	@Override
-	public void createFarmerAndFciDeal(FarmerComposite farmerComposite) {
-		farmerCompositeService.createFarmerAndFciDeal(farmerComposite);
+	public Mono<Void> deleteFarmer(String farmerIdentityCode) {
+		return farmerCompositeService.deleteFarmer(farmerIdentityCode);
 	}
 
 	@Override
-	public void deleteFarmer(String farmerIdentityCode) {
-		farmerCompositeService.deleteFarmer(farmerIdentityCode);
-	}
-
-	@Override
-	public FarmerComposite getFarmerSummary(String farmerIdentityCode) {
+	public Mono<FarmerComposite> getFarmerSummary(String farmerIdentityCode) {
 		return farmerCompositeService.getFarmerSummary(farmerIdentityCode);
 	}
 
 	@Override
-	public FarmerComposite getFarmerActiveFciSummary(String farmerIdentityCode) {
+	public Mono<FarmerComposite> getFarmerActiveFciSummary(String farmerIdentityCode) {
 		return farmerCompositeService.getFarmerActiveFciSummary(farmerIdentityCode);
 	}
 
 	@Override
-	public FarmerComposite getFarmerReviewingFciSummary(String farmerIdentityCode) {
+	public Mono<FarmerComposite> getFarmerReviewingFciSummary(String farmerIdentityCode) {
 		return farmerCompositeService.getFarmerReviewingFciSummary(farmerIdentityCode);
 	}
 
 	@Override
-	public FarmerComposite getFarmerCompletedFciSummary(String farmerIdentityCode) {
+	public Mono<FarmerComposite> getFarmerCompletedFciSummary(String farmerIdentityCode) {
 		return farmerCompositeService.getFarmerCompletedFciSummary(farmerIdentityCode);
 	}
 

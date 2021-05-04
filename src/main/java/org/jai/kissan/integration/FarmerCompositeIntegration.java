@@ -1,95 +1,124 @@
 package org.jai.kissan.integration;
 
-import java.util.List;
+import java.io.IOException;
 
+import org.jai.kissan.api.exception.CreateDataException;
+import org.jai.kissan.api.exception.ReadDataException;
+import org.jai.kissan.api.exception.handler.HttpErrorInfo;
 import org.jai.kissan.api.farmer.crop.model.Crop;
 import org.jai.kissan.api.farmer.crop.model.Farmer;
 import org.jai.kissan.api.farmer.fci.model.FarmerFciDeal;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class FarmerCompositeIntegration {
 
-	private final RestTemplate restTemplate;
+	private final WebClient webClient;
 	private final Endpoints endpoints;
 	private final ObjectMapper mapper;
 
-	@Autowired
-	public FarmerCompositeIntegration(RestTemplate restTemplate, Endpoints endpoints, ObjectMapper mapper) {
-		this.restTemplate = restTemplate;
-		this.mapper = mapper;
-		this.endpoints = endpoints;
-	}
-
-	public String createFarmer(Farmer farmer) {
+	public Mono<String> createFarmer(Farmer farmer) {
 		log.debug("Creating farmer..");
-		String identityCode = restTemplate.postForObject(endpoints.getFarmerCropServiceUrlForFarmer(), farmer,
-				String.class);
-
-		log.debug("Farmer created with Identity Code = {}", identityCode);
-		return identityCode;
+		return webClient.post().uri(endpoints.getFarmerCropServiceUriForFarmer()).bodyValue(farmer).retrieve()
+				.bodyToMono(String.class).log().onErrorMap(WebClientResponseException.class, ex -> handleException(ex));
 	}
 
-	public String createFciDeal(FarmerFciDeal deal) {
+	public Mono<String> createFciDeal(FarmerFciDeal deal) {
 
 		log.debug("Creating fci deal..");
-		String dealIdentityCode = restTemplate.postForObject(endpoints.getFarmerFciServiceUrlToCreateDeal(), deal,
-				String.class);
-
-		log.debug("FCI Deal created with Identity Code = {}", dealIdentityCode);
-		return dealIdentityCode;
+		return webClient.post().uri(endpoints.getFarmerFciServiceUriToCreateDeal()).bodyValue(deal).retrieve()
+				.bodyToMono(String.class).log().onErrorMap(WebClientResponseException.class, ex -> handleException(ex));
 	}
 
-	public void deleteFarmer(String farmerIdentityCode) {
-
-		restTemplate.delete(endpoints.getFarmerCropServiceUrlForFarmer() + "/" + farmerIdentityCode);
+	public Mono<Void> deleteFarmer(String farmerIdentityCode) {
+		return webClient.delete().uri(endpoints.getFarmerCropServiceUriForFarmer() + "/" + farmerIdentityCode)
+				.retrieve().bodyToMono(Void.class).log()
+				.onErrorMap(WebClientResponseException.class, ex -> handleException(ex));
 	}
 
-	public void deleteFarmerFciDeal(String fciDealIdentityCode) {
-		restTemplate.delete(endpoints.getFarmerFciServiceUrlToDeleteFciDeal() + "/" + fciDealIdentityCode);
+	public Mono<Void> deleteFarmerFciDeal(String fciDealIdentityCode) {
+		return webClient.delete().uri(endpoints.getFarmerFciServiceUriToDeleteFciDeal() + "/" + fciDealIdentityCode)
+				.retrieve().bodyToMono(Void.class).log()
+				.onErrorMap(WebClientResponseException.class, ex -> handleException(ex));
 	}
 
-	public void deleteFarmerFciDealsUsingFarmerIdentityCode(String farmerIdentityCode) {
-
-		restTemplate.delete(endpoints.getFarmerFciServiceUrlToDeleteAllFarmerDeals() + "/" + farmerIdentityCode);
+	public Mono<Void> deleteFarmerFciDealsUsingFarmerIdentityCode(String farmerIdentityCode) {
+		return webClient.delete()
+				.uri(endpoints.getFarmerFciServiceUriToDeleteAllFarmerDeals() + "/" + farmerIdentityCode).retrieve()
+				.bodyToMono(Void.class).log().onErrorMap(WebClientResponseException.class, ex -> handleException(ex));
 	}
 
-	public Farmer getFarmerDetails(String farmerIdentityCode) {
-		return restTemplate.getForObject(endpoints.getFarmerCropServiceUrlForFarmer() + "/" + farmerIdentityCode,
-				Farmer.class);
+	public Mono<Farmer> getFarmerDetails(String farmerIdentityCode) {
+		return webClient.get().uri(endpoints.getFarmerCropServiceUriForFarmer() + "/" + farmerIdentityCode).retrieve()
+				.bodyToMono(Farmer.class).log().onErrorMap(WebClientResponseException.class, ex -> handleException(ex));
 	}
 
-	public Crop getCropDetails(String cropIdentityCode) {
-		return restTemplate.getForObject(endpoints.getFarmerCropServiceUrlForCrop() + "/" + cropIdentityCode,
-				Crop.class);
+	public Mono<Crop> getCropDetails(String cropIdentityCode) {
+		return webClient.get().uri(endpoints.getFarmerCropServiceUriForCrop() + "/" + cropIdentityCode).retrieve()
+				.bodyToMono(Crop.class).log().onErrorMap(WebClientResponseException.class, ex -> handleException(ex));
 	}
 
-	public List<FarmerFciDeal> getFarmerActiveFciDeals(String farmerIdentityCode) {
-		return restTemplate.exchange(endpoints.getFarmerFciServiceUrlToGetActiveDeals(), HttpMethod.GET, null,
-				new ParameterizedTypeReference<List<FarmerFciDeal>>() {
-				}).getBody();
+	public Flux<FarmerFciDeal> getFarmerActiveFciDeals(String farmerIdentityCode) {
+		return webClient.get().uri(endpoints.getFarmerFciServiceUriToGetActiveDeals() + "/" + farmerIdentityCode)
+				.retrieve().bodyToFlux(FarmerFciDeal.class).log()
+				.onErrorMap(WebClientResponseException.class, ex -> handleException(ex));
 	}
 
-	public List<FarmerFciDeal> getFarmerAllFciDeals(String farmerIdentityCode) {
-
-		return null;
+	public Flux<FarmerFciDeal> getFarmerAllFciDeals(String farmerIdentityCode) {
+		return webClient.get().uri(endpoints.getFarmerFciServiceUriToGetAllDeals() + "/" + farmerIdentityCode)
+				.retrieve().bodyToFlux(FarmerFciDeal.class).log()
+				.onErrorMap(WebClientResponseException.class, ex -> handleException(ex));
 	}
 
-	public List<FarmerFciDeal> getFarmerReviewingFciDeals(String farmerIdentityCode) {
-		return null;
+	public Flux<FarmerFciDeal> getFarmerReviewingFciDeals(String farmerIdentityCode) {
+		return webClient.get().uri(endpoints.getFarmerFciServiceUriToGetReviewingDeals() + "/" + farmerIdentityCode)
+				.retrieve().bodyToFlux(FarmerFciDeal.class).log()
+				.onErrorMap(WebClientResponseException.class, ex -> handleException(ex));
 	}
 
-	public List<FarmerFciDeal> getFarmerCompletedFciDeals(String farmerIdentityCode) {
-		return null;
+	public Flux<FarmerFciDeal> getFarmerCompletedFciDeals(String farmerIdentityCode) {
+		return webClient.get().uri(endpoints.getFarmerFciServiceUriToGetCompletedDeals() + "/" + farmerIdentityCode)
+				.retrieve().bodyToFlux(FarmerFciDeal.class).log()
+				.onErrorMap(WebClientResponseException.class, ex -> handleException(ex));
+	}
+
+	private Throwable handleException(WebClientResponseException wcre) {
+
+		switch (wcre.getStatusCode()) {
+
+		case NOT_FOUND:
+			return new ReadDataException(getErrorMessage(wcre));
+
+		case UNPROCESSABLE_ENTITY:
+			return new CreateDataException(getErrorMessage(wcre));
+
+		case NOT_ACCEPTABLE:
+			return new CreateDataException(getErrorMessage(wcre));
+
+		default:
+			log.warn("Got a unexpected HTTP error: {}, will rethrow it", wcre.getStatusCode());
+			log.warn("Error body: {}", wcre.getResponseBodyAsString());
+			return wcre;
+		}
+	}
+
+	private String getErrorMessage(WebClientResponseException ex) {
+		try {
+			return mapper.readValue(ex.getResponseBodyAsString(), HttpErrorInfo.class).getMessage();
+		} catch (IOException ioex) {
+			return ex.getMessage();
+		}
 	}
 
 }

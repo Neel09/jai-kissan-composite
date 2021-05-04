@@ -1,13 +1,11 @@
 package org.jai.kissan.service;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.jai.kissan.api.farmer.composite.model.CropDetail;
 import org.jai.kissan.api.farmer.composite.model.FarmerComposite;
-import org.jai.kissan.api.farmer.composite.model.FciDealSummary;
 import org.jai.kissan.api.farmer.crop.model.Crop;
 import org.jai.kissan.api.farmer.crop.model.Farmer;
 import org.jai.kissan.api.farmer.fci.model.FarmerFciDeal;
@@ -15,10 +13,16 @@ import org.jai.kissan.integration.FarmerCompositeIntegration;
 import org.jai.kissan.mappers.CropMapper;
 import org.jai.kissan.mappers.FarmerFciMapper;
 import org.jai.kissan.mappers.FarmerMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
 @Service("farmerCompositeService")
+@RequiredArgsConstructor
+@Slf4j
 public class FarmerCompositeServiceImpl implements FarmerCompositeService {
 
 	private final FarmerCompositeIntegration compositeIntegration;
@@ -29,111 +33,113 @@ public class FarmerCompositeServiceImpl implements FarmerCompositeService {
 
 	private final FarmerFciMapper farmerFciMapper;
 
-	@Autowired
-	public FarmerCompositeServiceImpl(FarmerCompositeIntegration compositeIntegration, FarmerMapper farmerMapper,
-			CropMapper cropMapper, FarmerFciMapper farmerFciMapper) {
+	@Override
+	public Mono<String> createFarmerAndFciDeal(FarmerComposite fc) {
 
-		this.compositeIntegration = compositeIntegration;
-		this.farmerMapper = farmerMapper;
-		this.cropMapper = cropMapper;
-		this.farmerFciMapper = farmerFciMapper;
+		Farmer farmer = farmerMapper.farmerDetailToFarmerApiModelMapper(fc.getFarmerDetail());
+
+		return compositeIntegration.createFarmer(farmer).flatMap((farmerIdentityCode) -> {
+			if (CollectionUtils.isNotEmpty(fc.getFciDeals())) {
+
+				FarmerFciDeal deal = farmerFciMapper
+						.fciDealSummaryToFarmerFciDealApiModelMapper(fc.getFciDeals().get(0));
+				deal.setFarmerIdentityCode(farmerIdentityCode);
+
+				return compositeIntegration.createFciDeal(deal).thenReturn(farmerIdentityCode);
+			}
+			return Mono.just(farmerIdentityCode);
+		});
 	}
 
 	@Override
-	public void createFarmerAndFciDeal(FarmerComposite farmerComposite) {
-		String farmerIdentityCode = compositeIntegration
-				.createFarmer(farmerMapper.farmerDetailToFarmerApiModelMapper(farmerComposite.getFarmerDetail()));
-
-		if (CollectionUtils.isNotEmpty(farmerComposite.getFciDeals())) {
-			List<FciDealSummary> dealSummaries = farmerComposite.getFciDeals().stream().map(d -> {
-				d.setFciDealIdentityCode(farmerIdentityCode);
-				return d;
-			}).collect(Collectors.toList());
-
-			compositeIntegration
-					.createFciDeal(farmerFciMapper.fciDealSummaryToFarmerFciDealApiModelMapper(dealSummaries.get(0)));
-		}
+	public Mono<Void> deleteFarmer(String farmerIdentityCode) {
+		return compositeIntegration.deleteFarmer(farmerIdentityCode)
+				.then(compositeIntegration.deleteFarmerFciDealsUsingFarmerIdentityCode(farmerIdentityCode));
 	}
 
 	@Override
-	public void deleteFarmer(String farmerIdentityCode) {
-		compositeIntegration.deleteFarmer(farmerIdentityCode);
-		compositeIntegration.deleteFarmerFciDealsUsingFarmerIdentityCode(farmerIdentityCode);
+	public Mono<FarmerComposite> getFarmerSummary(String farmerIdentityCode) {
+
+		return Mono.zip(values -> {
+			FarmerComposite composite = new FarmerComposite();
+			composite.setFarmerDetail(farmerMapper.farmerApiModelToFarmerDetailMapper((Farmer) values[0]));
+			if (values[1] != null) {
+				composite.setFciDeals(
+						farmerFciMapper.farmerFciDealApiModelsToFciDealsSummaryMapper((List<FarmerFciDeal>) values[1]));
+			}
+			setCropDetails(composite);
+			return composite;
+		}, compositeIntegration.getFarmerDetails(farmerIdentityCode),
+				compositeIntegration.getFarmerAllFciDeals(farmerIdentityCode).collectList());
 	}
 
 	@Override
-	public FarmerComposite getFarmerSummary(String farmerIdentityCode) {
+	public Mono<FarmerComposite> getFarmerActiveFciSummary(String farmerIdentityCode) {
 
-		Farmer farmer = compositeIntegration.getFarmerDetails(farmerIdentityCode);
-
-		List<FarmerFciDeal> fciDeals = compositeIntegration.getFarmerAllFciDeals(farmerIdentityCode);
-
-		FarmerComposite composite = new FarmerComposite();
-
-		composite.setFarmerDetail(farmerMapper.farmerApiModelToFarmerDetailMapper(farmer));
-		composite.setFciDeals(farmerFciMapper.farmerFciDealApiModelsToFciDealsSummaryMapper(fciDeals));
-
-		setCropDetails(composite);
-
-		return composite;
+		return Mono.zip(values -> {
+			FarmerComposite composite = new FarmerComposite();
+			composite.setFarmerDetail(farmerMapper.farmerApiModelToFarmerDetailMapper((Farmer) values[0]));
+			if (values[1] != null) {
+				composite.setFciDeals(
+						farmerFciMapper.farmerFciDealApiModelsToFciDealsSummaryMapper((List<FarmerFciDeal>) values[1]));
+			}
+			return composite;
+		}, compositeIntegration.getFarmerDetails(farmerIdentityCode),
+				compositeIntegration.getFarmerActiveFciDeals(farmerIdentityCode).collectList())
+				.doOnNext((composite) -> setCropDetails(composite));
 	}
 
 	@Override
-	public FarmerComposite getFarmerActiveFciSummary(String farmerIdentityCode) {
-		Farmer farmer = compositeIntegration.getFarmerDetails(farmerIdentityCode);
+	public Mono<FarmerComposite> getFarmerReviewingFciSummary(String farmerIdentityCode) {
 
-		List<FarmerFciDeal> fciDeals = compositeIntegration.getFarmerActiveFciDeals(farmerIdentityCode);
-
-		FarmerComposite composite = new FarmerComposite();
-		composite.setFarmerDetail(farmerMapper.farmerApiModelToFarmerDetailMapper(farmer));
-		composite.setFciDeals(farmerFciMapper.farmerFciDealApiModelsToFciDealsSummaryMapper(fciDeals));
-
-		setCropDetails(composite);
-
-		return composite;
+		return Mono.zip(values -> {
+			FarmerComposite composite = new FarmerComposite();
+			composite.setFarmerDetail(farmerMapper.farmerApiModelToFarmerDetailMapper((Farmer) values[0]));
+			if (values[1] != null) {
+				composite.setFciDeals(
+						farmerFciMapper.farmerFciDealApiModelsToFciDealsSummaryMapper((List<FarmerFciDeal>) values[1]));
+			}
+			return composite;
+		}, compositeIntegration.getFarmerDetails(farmerIdentityCode),
+				compositeIntegration.getFarmerReviewingFciDeals(farmerIdentityCode).collectList())
+				.doOnNext((composite) -> setCropDetails(composite));
 	}
 
 	@Override
-	public FarmerComposite getFarmerReviewingFciSummary(String farmerIdentityCode) {
-		Farmer farmer = compositeIntegration.getFarmerDetails(farmerIdentityCode);
+	public Mono<FarmerComposite> getFarmerCompletedFciSummary(String farmerIdentityCode) {
 
-		List<FarmerFciDeal> fciDeals = compositeIntegration.getFarmerReviewingFciDeals(farmerIdentityCode);
-
-		FarmerComposite composite = new FarmerComposite();
-		composite.setFarmerDetail(farmerMapper.farmerApiModelToFarmerDetailMapper(farmer));
-		composite.setFciDeals(farmerFciMapper.farmerFciDealApiModelsToFciDealsSummaryMapper(fciDeals));
-		setCropDetails(composite);
-		return composite;
-	}
-
-	@Override
-	public FarmerComposite getFarmerCompletedFciSummary(String farmerIdentityCode) {
-		Farmer farmer = compositeIntegration.getFarmerDetails(farmerIdentityCode);
-
-		List<FarmerFciDeal> fciDeals = compositeIntegration.getFarmerCompletedFciDeals(farmerIdentityCode);
-
-		FarmerComposite composite = new FarmerComposite();
-		composite.setFarmerDetail(farmerMapper.farmerApiModelToFarmerDetailMapper(farmer));
-		composite.setFciDeals(farmerFciMapper.farmerFciDealApiModelsToFciDealsSummaryMapper(fciDeals));
-		setCropDetails(composite);
-		return composite;
+		return Mono.zip(values -> {
+			FarmerComposite composite = new FarmerComposite();
+			composite.setFarmerDetail(farmerMapper.farmerApiModelToFarmerDetailMapper((Farmer) values[0]));
+			if (values[1] != null) {
+				composite.setFciDeals(
+						farmerFciMapper.farmerFciDealApiModelsToFciDealsSummaryMapper((List<FarmerFciDeal>) values[1]));
+			}
+			return composite;
+		}, compositeIntegration.getFarmerDetails(farmerIdentityCode),
+				compositeIntegration.getFarmerCompletedFciDeals(farmerIdentityCode).collectList())
+				.doOnNext((composite) -> setCropDetails(composite));
 	}
 
 	private void setCropDetails(FarmerComposite composite) {
-		List<String> cropIdentityCodes = composite.getFciDeals().stream()
-				.map(d -> d.getCropDetails().getCropIdentityCode()).distinct().collect(Collectors.toList());
 
-		Map<String, String> cropMap = cropIdentityCodes.stream()
-				.map(crodId -> compositeIntegration.getCropDetails(crodId))
-				.collect(Collectors.toMap(Crop::getIdentityCode, Crop::getName));
+		Map<String, Crop> cropMap = new HashMap<>();
 
-		List<FciDealSummary> fciDealSummariesWithCropDetails = composite.getFciDeals().stream().map(deal -> {
-			CropDetail cropDetail = deal.getCropDetails();
-			cropDetail.setCropName(cropMap.get(cropDetail.getCropIdentityCode()));
-			return deal;
-		}).collect(Collectors.toList());
-
-		composite.setFciDeals(fciDealSummariesWithCropDetails);
+		Flux.fromIterable(composite.getFciDeals()).flatMap(deal -> {
+			String cropId = deal.getCropDetails().getCropIdentityCode();
+			Crop crop = cropMap.get(cropId);
+			if (crop == null) {
+				return compositeIntegration.getCropDetails(cropId).doOnNext((cropE) -> {
+					cropMap.put(cropId, cropE);
+					log.info("****1*****" + cropE.getName() + "------------");
+					deal.setCropDetails(cropMapper.cropApiModelToCropDetailMapper(cropE));
+				});
+			}
+			log.info("****2*****" + crop.getName() + "------------");
+			deal.setCropDetails(cropMapper.cropApiModelToCropDetailMapper(crop));
+			return Mono.just(crop);
+		}).onErrorContinue((error, cropId) -> log.error("CropId {} not found due to {}", cropId, error.getMessage()))
+				.subscribe();
 	}
 
 }
