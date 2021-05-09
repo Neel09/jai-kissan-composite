@@ -8,25 +8,31 @@ import org.jai.kissan.api.exception.handler.HttpErrorInfo;
 import org.jai.kissan.api.farmer.crop.model.Crop;
 import org.jai.kissan.api.farmer.crop.model.Farmer;
 import org.jai.kissan.api.farmer.fci.model.FarmerFciDeal;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Component
 @Slf4j
-@RequiredArgsConstructor
 public class FarmerCompositeIntegration {
 
-	private final WebClient webClient;
 	private final Endpoints endpoints;
 	private final ObjectMapper mapper;
+	private final WebClient webClient;
+
+	@Autowired
+	public FarmerCompositeIntegration(WebClient.Builder webClientBuilder, Endpoints endpoints, ObjectMapper mapper) {
+		this.webClient = webClientBuilder.build();
+		this.endpoints = endpoints;
+		this.mapper = mapper;
+	}
 
 	public Mono<String> createFarmer(Farmer farmer) {
 		log.debug("Creating farmer..");

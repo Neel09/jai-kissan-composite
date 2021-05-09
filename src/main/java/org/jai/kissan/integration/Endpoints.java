@@ -35,10 +35,7 @@ public class Endpoints {
 
 	private final String farmerFciServiceUriToDeleteFciDeal;
 
-	public Endpoints(@Value("${app.farmer-crop-service.host}") String farmerCropServiceHost,
-			@Value("${app.farmer-crop-service.port}") String farmerCropServicePort,
-			@Value("${app.farmer-fci-service.host}") String farmerFciServiceHost,
-			@Value("${app.farmer-fci-service.port}") String farmerFciServicePort,
+	public Endpoints(
 			@Value("${app.farmer-crop-service.endpoint.farmer}") String farmerCropServiceEndpointForFarmer,
 			@Value("${app.farmer-crop-service.endpoint.crop}") String farmerCropServiceEndpointForCrop,
 			@Value("${app.farmer-fci-service.endpoint.deal}") String farmerFciServiceEndpointToCreateDeal,
@@ -53,8 +50,8 @@ public class Endpoints {
 			@Value("${app.farmer-fci-service.endpoint.all-deals}") String farmerFciServiceEndpointToGetAllDeals,
 			@Value("${app.farmer-fci-service.endpoint.completed-deals}") String farmerFciServiceEndpointToGetCompletedDeals) {
 
-		String farmerCropServiceHostAndPort = "http://" + farmerCropServiceHost + ":" + farmerCropServicePort;
-		String farmerFciServiceHostAndPort = "http://" + farmerFciServiceHost + ":" + farmerFciServicePort;
+		String farmerCropServiceHostAndPort = "http://farmer-crop-service";
+		String farmerFciServiceHostAndPort = "http://farmer-fci-service";
 
 		// Farmer-Crop Service Endpoints
 		this.farmerCropServiceUriForFarmer = farmerCropServiceHostAndPort + farmerCropServiceEndpointForFarmer;
